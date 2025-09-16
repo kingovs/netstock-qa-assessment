@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+
+# Playwright
+test-results/
+playwright-report/
+screenshots/
+*.png
+
+# Test outputs
+*.html
+*.xml
+automation_test_report.html
+test_report.html
+form_fill_error.png
+submit_button_not_found.png
+page_screenshot_*.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+log/
+*.log
