@@ -1,6 +1,5 @@
-"""
-Simplified configuration for Playwright tests - Fast version
-"""
+# Base test config via pytest
+
 import pytest
 from playwright.sync_api import Page, sync_playwright
 from datetime import datetime, timedelta
@@ -28,40 +27,71 @@ def generate_unique_phone():
     return f"TEST{timestamp}"
 
 
-@pytest.fixture(scope="function")
-def custom_page():
-    """Custom page fixture that guarantees headed mode"""
-    with sync_playwright() as p:
-        browser = p.firefox.launch(
-            headless=False,
-            slow_mo=1000
-        )
-        context = browser.new_context(
-            viewport={"width": 1920, "height": 1080}
-        )
-        page = context.new_page()
-        yield page
-        browser.close()
-
-
-def navigate_to_booking_page(page: Page):
-    """Navigate directly to reservation page with future dates (fast version)"""
-    print("Using future dates for booking...")
+def find_available_room_dates(room_type=1, check_api=False):
+    """
+    Simple function to find available dates for a room type
     
-    # Use simple future dates instead of API checking for speed
-    from datetime import datetime, timedelta
-    base_date = datetime.now() + timedelta(days=30)  # 30 days in future
+    Returns:
+        tuple: (checkin_date, checkout_date) as strings in YYYY-MM-DD format
+    """
+    # Default fallback dates (current working approach)
+    base_date = datetime.now() + timedelta(days=1)  # Tomorrow
     checkin = base_date.strftime("%Y-%m-%d")
     checkout = (base_date + timedelta(days=1)).strftime("%Y-%m-%d")
     
+    if check_api:
+        print(f"Checking API for Room {room_type} availability...")
+        try:
+            import requests
+            
+            # Simple API check - look for bookings on our proposed dates
+            api_url = f"https://restful-booker.herokuapp.com/booking?checkin={checkin}"
+            response = requests.get(api_url, timeout=5)
+            
+            if response.status_code == 200:
+                bookings = response.json()
+                if bookings:  # If bookings found, try next day
+                    print(f"Found {len(bookings)} booking(s) on {checkin}, trying next day...")
+                    base_date = base_date + timedelta(days=1)
+                    checkin = base_date.strftime("%Y-%m-%d")
+                    checkout = (base_date + timedelta(days=1)).strftime("%Y-%m-%d")
+                    print(f"Using {checkin} to {checkout} instead")
+                else:
+                    print(f"No conflicts found for {checkin}")
+            else:
+                print(f"API check failed (status {response.status_code}), using fallback dates")
+                
+        except Exception as e:
+            print(f"API check failed ({e}), using fallback dates")
+    
+    print(f"Selected dates for Room {room_type}: {checkin} to {checkout}")
+    return checkin, checkout
+
+
+def navigate_to_booking_page(page: Page, room_type=1, check_api=False):
+    """
+    Navigate to reservation page with optional room availability checking
+    UNCHANGED behavior when called without parameters
+    """
+    if check_api:
+        # Using Room Availability Checker
+        checkin, checkout = find_available_room_dates(room_type, check_api=True)
+        reservation_url = f"https://automationintesting.online/reservation/{room_type}?checkin={checkin}&checkout={checkout}"
+        print(f"Using API-checked dates for Room {room_type}: {reservation_url}")
+    else:
+        # Fallback Logic
+        print("Using fallback date strategy...")
+        base_date = datetime.now() + timedelta(days=30)  # 30 days in future
+        checkin = base_date.strftime("%Y-%m-%d")
+        checkout = (base_date + timedelta(days=1)).strftime("%Y-%m-%d")
+        reservation_url = f"https://automationintesting.online/reservation/{room_type}?checkin={checkin}&checkout={checkout}"
+    
     print(f"Using dates: {checkin} to {checkout}")
     
-    # Go to room 1 reservation page with future dates
-    reservation_url = f"https://automationintesting.online/reservation/1?checkin={checkin}&checkout={checkout}"
+    #
     page.goto(reservation_url)
     page.wait_for_timeout(2000)
     
-    # Click "Reserve Now" to reveal the booking form
     print("Clicking Reserve Now to reveal booking form...")
     reserve_button = page.locator("button:has-text('Reserve Now')").first
     reserve_button.click()
@@ -91,7 +121,7 @@ def fill_booking_form(page: Page, firstname="John", lastname="Doe", email="john.
     print("Form filled successfully")
     page.wait_for_timeout(1000)
     
-    return phone  # Return the phone number for tracking
+    return phone  
 
 
 def submit_booking_form(page: Page):
@@ -104,99 +134,3 @@ def submit_booking_form(page: Page):
     
     page.wait_for_timeout(2000)
     print("Form submitted")
-
-
-def check_for_error_messages(page: Page):
-    """Look for error messages on the page"""
-    error_messages = []
-    
-    # Look for common error message patterns
-    error_selectors = [
-        ".alert-danger",
-        ".error", 
-        ".invalid-feedback",
-        "[class*='error']",
-        ".text-danger",
-        ".alert",
-        ".notification"
-    ]
-    
-    for selector in error_selectors:
-        try:
-            elements = page.locator(selector).all()
-            for element in elements:
-                if element.is_visible():
-                    text = element.text_content()
-                    if text and text.strip():
-                        error_messages.append(text.strip())
-        except:
-            continue
-    
-    # Check for HTML5 validation on required fields
-    try:
-        # Check if email field shows validation error
-        email_field = page.locator("input[name='email']")
-        if email_field.is_visible():
-            # Check if field is marked as invalid
-            validation_message = email_field.evaluate("el => el.validationMessage")
-            if validation_message:
-                error_messages.append(f"Email validation: {validation_message}")
-    except:
-        pass
-    
-    # Check for browser console errors (JavaScript errors)
-    try:
-        # Check if there are any console error messages visible
-        page.wait_for_timeout(1000)  # Wait a moment for any async errors
-        
-        # Look for the application error shown in the browser
-        app_error = page.locator("text=Application error").first
-        if app_error.is_visible():
-            error_messages.append("Application error: client-side exception occurred")
-            
-        # Also check for any network/API errors in the page content
-        if "exception has occurred" in page.content().lower():
-            error_messages.append("JavaScript exception occurred during form submission")
-            
-    except:
-        pass
-    
-    return error_messages
-
-
-def check_for_success_messages(page: Page):
-    """Look for success confirmation messages"""
-    success_messages = []
-    
-    # Wait for any async operations to complete
-    page.wait_for_timeout(3000)
-    
-    success_selectors = [
-        ".alert-success",
-        ".success",
-        ".confirmation",
-        "[class*='success']",
-        ".text-success"
-    ]
-    
-    for selector in success_selectors:
-        try:
-            elements = page.locator(selector).all()
-            for element in elements:
-                if element.is_visible():
-                    text = element.text_content()
-                    if text and text.strip():
-                        success_messages.append(text.strip())
-        except:
-            continue
-    
-    # Check for booking confirmation indicators
-    try:
-        # Look for booking reference numbers or confirmation text
-        page_content = page.content().lower()
-        if any(phrase in page_content for phrase in ["booking confirmed", "reservation confirmed", "thank you"]):
-            success_messages.append("Booking confirmation detected in page content")
-    except:
-        pass
-    
-    return success_messages

@@ -1,6 +1,5 @@
-"""
-Simple test runner for all Playwright booking tests
-"""
+# RUNNING ALL TESTS
+
 import pytest
 import sys
 from datetime import datetime
@@ -17,10 +16,9 @@ def run_all_tests():
     
     # Test files to run
     test_files = [
-        "test_missing_email_simple.py",
-        "test_complete_booking_simple.py", 
-        "test_booking_deletion_simple.py",
-        "test_date_validation_simple.py"
+        "i_test_missing_email.py",
+        "ii_test_complete_booking.py", 
+        "iii_test_booking_deletion.py"
     ]
     
     # Run the tests

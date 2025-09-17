@@ -1,6 +1,5 @@
-"""
-Minimal page analyzer - analyze pages and navigate URLs
-"""
+# Page analyzer for UI automation
+
 from playwright.sync_api import sync_playwright
 
 
