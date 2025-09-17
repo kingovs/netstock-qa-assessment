@@ -191,9 +191,3 @@ Features:
 - Analyze current page elements (buttons, inputs)
 - Navigate to different URLs
 - Discover selectors for test development
-
-### View Test Reports
-```bash
-# Generate and view HTML test report
-pytest i_test_*.py ii_test_*.py iii_test_*.py --html=test_report.html --self-contained-html
-```
