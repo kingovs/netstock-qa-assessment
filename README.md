@@ -22,7 +22,7 @@ app/
 
 ## 🛠️ Environment Setup
 
-### Option 1: One-Click Setup (Recommended)
+### Option 1: One-Click Setup (Not tested)
 
 ```bash
 # Download and run the setup script
