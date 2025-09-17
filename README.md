@@ -1,6 +1,6 @@
-# Playwright UI Automation Test Suite
+# Netstock UI Automation
 
-Comprehensive UI automation test suite for the RestfulBooker application using Playwright and Python. Tests booking functionality including form validation, successful bookings, and API-based deletion.
+UI automation using Playwright and Python.
 
 ## 📁 Project Structure
 
